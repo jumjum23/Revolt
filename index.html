@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RE-VOLT | Powering Your Journey</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Leaflet CSS for the Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #050505;
+        }
+        .bg-volt-dark { background-color: #050505; }
+        .bg-volt-card { background-color: #0d0d0d; }
+        .bg-volt-gradient { background: linear-gradient(135deg, #000000 0%, #061a14 100%); }
+        .text-volt-green { color: #10b981; }
+        .bg-volt-green { background-color: #10b981; }
+        .border-volt-green { border-color: #10b981; }
+        .hover-lift { transition: all 0.3s ease; }
+        .hover-lift:hover { 
+            transform: translateY(-5px); 
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.3); 
+        }
+        .shadow-neon { box-shadow: 0 0 15px rgba(16, 185, 129, 0.4); }
+        
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #050505; }
+        ::-webkit-scrollbar-thumb { background: #10b981; border-radius: 10px; }
+
+        #map { height: 500px; border-radius: 1.5rem; width: 100%; z-index: 10; }
+        .leaflet-container { background: #0d0d0d !important; }
+        .leaflet-tile { filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%); }
+    </style>
+</head>
+<body class="text-gray-100 overflow-x-hidden">
+
+    <script>
+        const AppState = {
+            user: JSON.parse(localStorage.getItem('revolt_user')) || null,
+            hubs: [
+                { id: 1, name: "Marikina Riverbanks", lat: 14.6305, lng: 121.0825, status: "Online", slots: 12, address: "A. Bonifacio Ave, Marikina" },
+                { id: 2, name: "SM Marikina Hub", lat: 14.6225, lng: 121.0838, status: "Online", slots: 8, address: "Marikina-Infanta Hwy" },
+                { id: 3, name: "Concepcion Uno", lat: 14.6515, lng: 121.0995, status: "Full", slots: 0, address: "J.P. Rizal St, Marikina" },
+                { id: 4, name: "Marikina Public Market", lat: 14.6355, lng: 121.0945, status: "Online", slots: 5, address: "W. Paz St, Sta. Elena" },
+                { id: 5, name: "Nangka Station", lat: 14.6720, lng: 121.1080, status: "Online", slots: 18, address: "JP Rizal, Nangka" }
+            ],
+            save() {
+                localStorage.setItem('revolt_user', JSON.stringify(this.user));
+                renderUI();
+            }
+        };
+
+        let map;
+        let markers = [];
+    </script>
+
+    <nav class="fixed w-full z-50 bg-black/80 backdrop-blur-md border-b border-white/10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-20 items-center">
+                <div class="flex items-center space-x-2 cursor-pointer" onclick="window.scrollTo(0,0)">
+                    <div class="w-10 h-10 bg-volt-green rounded-lg flex items-center justify-center text-black shadow-neon">
+                        <i class="fas fa-bolt text-xl"></i>
+                    </div>
+                    <span class="text-2xl font-bold tracking-tight text-white">RE-VOLT</span>
+                </div>
+                <div class="hidden md:flex space-x-8 text-sm font-semibold uppercase tracking-wider text-gray-400">
+                    <a href="#ecosystem" class="hover:text-volt-green transition">Our Tech</a>
+                    <a href="#hubs" class="hover:text-volt-green transition">Find a Station</a>
+                    <a href="#pricing" class="hover:text-volt-green transition">Membership</a>
+                    <a href="#invest" class="hover:text-volt-green transition">Investors</a>
+                </div>
+                <div id="nav-auth-area" class="flex items-center space-x-4"></div>
+            </div>
+        </div>
+    </nav>
+
+    <section class="pt-40 pb-24 bg-volt-gradient">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center">
+            <div class="md:w-1/2 space-y-8 text-center md:text-left">
+                <div class="inline-block px-4 py-1 rounded-full bg-emerald-500/10 text-volt-green text-xs font-bold uppercase tracking-widest border border-emerald-500/30">
+                    Rethink Your Ride
+                </div>
+                <h1 class="text-5xl md:text-7xl font-extrabold leading-tight">
+                    Never Plug In <br/><span class="text-volt-green">Again.</span>
+                </h1>
+                <p class="text-xl text-gray-400 max-w-lg mx-auto md:mx-0 leading-relaxed">
+                    Tired of waiting hours to charge? Swap your empty battery for a fresh one in seconds. Join the movement making the Philippines move cleaner and faster.
+                </p>
+                <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 pt-4 justify-center md:justify-start">
+                    <button onclick="scrollToId('pricing')" class="bg-volt-green text-black px-8 py-4 rounded-xl font-bold hover:bg-emerald-400 transition shadow-neon">Start Swapping</button>
+                    <button onclick="scrollToId('hubs')" class="border border-white/20 px-8 py-4 rounded-xl font-bold hover:bg-white/5 transition">See the Map</button>
+                </div>
+            </div>
+            <div class="md:w-1/2 mt-16 md:mt-0 flex justify-center">
+                <div class="relative group">
+                    <div class="w-64 h-80 bg-[#111] rounded-3xl shadow-2xl border-2 border-volt-green/30 p-6 flex flex-col justify-between transform -rotate-2 group-hover:rotate-0 transition-all duration-500">
+                        <div class="flex justify-between items-start">
+                            <i class="fas fa-microchip text-3xl text-volt-green"></i>
+                            <span class="text-[10px] font-mono text-gray-500">REVOLT-SMART-CELL</span>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="text-xs uppercase text-gray-500">Ready to Ride</div>
+                            <div class="text-5xl font-bold text-white">99<span class="text-2xl text-volt-green">%</span></div>
+                            <div class="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
+                                <div class="h-full bg-volt-green shadow-neon" style="width: 99%"></div>
+                            </div>
+                        </div>
+                        <div class="bg-black/50 p-3 rounded-xl text-[10px] leading-tight font-mono text-emerald-500 border border-emerald-900/30">
+                            MODE: PERFORMANCE<br>HEALTH: EXCELLENT<br>SECURE: YES
+                        </div>
+                    </div>
+                    <div class="absolute -inset-10 bg-emerald-500/5 blur-[80px] -z-10"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Find a Station (HUB MENU) Section -->
+    <section id="hubs" class="py-24">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-6">
+                <div>
+                    <h2 class="text-4xl font-bold text-white">Find a Station</h2>
+                    <p class="text-gray-500 mt-2">Locate the nearest RE-VOLT Hub and swap your battery in seconds.</p>
+                </div>
+                <div class="flex flex-wrap gap-4 w-full md:w-auto">
+                    <div class="relative flex-grow md:flex-grow-0">
+                        <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-500"></i>
+                        <input type="text" id="hubSearch" placeholder="Search Marikina..." class="bg-volt-card border border-white/10 rounded-xl py-3 pl-12 pr-4 text-sm w-full outline-none focus:border-volt-green transition" oninput="filterHubs()">
+                    </div>
+                    <button onclick="refreshHubs()" class="flex items-center bg-white/5 border border-white/10 px-6 py-3 rounded-xl text-volt-green font-bold hover:bg-white/10 transition">
+                        <i class="fas fa-sync-alt mr-2"></i> Sync Grid
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid lg:grid-cols-12 gap-8">
+                <!-- Sidebar Hub List -->
+                <div class="lg:col-span-4 space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar" id="hub-list">
+                    <!-- Hub items injected here -->
+                </div>
+
+                <!-- Map View -->
+                <div class="lg:col-span-8">
+                    <div id="map" class="shadow-2xl border border-white/10"></div>
+                </div>
+            </div>
+
+            <!-- Impact Calculator -->
+            <div class="mt-20 bg-emerald-950/20 rounded-3xl p-8 border border-emerald-900/30">
+                <div class="grid md:grid-cols-2 gap-12 items-center">
+                    <div>
+                        <h3 class="text-2xl font-bold mb-4 text-white">Your Environmental Impact</h3>
+                        <p class="text-gray-400 mb-8">Every kilometer you ride electric makes a difference. Calculate your contribution to a cleaner city.</p>
+                        <div class="space-y-6">
+                            <label class="block text-sm font-bold text-gray-500 uppercase tracking-widest">Your Daily Commute (KM)</label>
+                            <input type="range" id="kmRange" min="5" max="100" value="20" class="w-full h-1 bg-emerald-900 rounded-lg appearance-none cursor-pointer accent-volt-green" oninput="calculateImpact()">
+                            <div class="flex justify-between font-mono text-volt-green font-bold">
+                                <span>5km</span>
+                                <span id="kmLabel" class="text-lg">20km / day</span>
+                                <span>100km</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-black/40 p-6 rounded-2xl border border-white/5 text-center">
+                            <div class="text-4xl font-black text-white" id="co2Val">4.2kg</div>
+                            <div class="text-[10px] text-gray-500 uppercase font-bold tracking-widest mt-2">Carbon Saved / Week</div>
+                        </div>
+                        <div class="bg-black/40 p-6 rounded-2xl border border-white/5 text-center">
+                            <div class="text-4xl font-black text-white" id="treeVal">2</div>
+                            <div class="text-[10px] text-gray-500 uppercase font-bold tracking-widest mt-2">Trees Planted Effort</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How it Works Section -->
+    <section id="ecosystem" class="py-24 border-y border-white/5 bg-black/50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-20">
+                <h2 class="text-4xl font-bold text-white mb-4">How It Works</h2>
+                <p class="text-gray-500">We've built a system that fits your life, not the other way around.</p>
+            </div>
+            <div class="grid md:grid-cols-3 gap-12">
+                <div class="group text-center md:text-left">
+                    <div class="mx-auto md:mx-0 w-16 h-16 bg-volt-green/10 text-volt-green rounded-2xl flex items-center justify-center mb-8 text-2xl group-hover:bg-volt-green group-hover:text-black transition-all duration-300">
+                        <i class="fas fa-car-battery"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-4 text-white">The Battery</h3>
+                    <p class="text-gray-500 leading-relaxed">High-performance cells packed with smart technology to track your range and keep you safe on every trip.</p>
+                </div>
+                <div class="group text-center md:text-left">
+                    <div class="mx-auto md:mx-0 w-16 h-16 bg-volt-green/10 text-volt-green rounded-2xl flex items-center justify-center mb-8 text-2xl group-hover:bg-volt-green group-hover:text-black transition-all duration-300">
+                        <i class="fas fa-charging-station"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-4 text-white">The Station</h3>
+                    <p class="text-gray-500 leading-relaxed">Strategically placed kiosks where you can drop your empty and grab a full one in under 30 seconds.</p>
+                </div>
+                <div class="group text-center md:text-left">
+                    <div class="mx-auto md:mx-0 w-16 h-16 bg-volt-green/10 text-volt-green rounded-2xl flex items-center justify-center mb-8 text-2xl group-hover:bg-volt-green group-hover:text-black transition-all duration-300">
+                        <i class="fas fa-mobile-alt"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-4 text-white">The App</h3>
+                    <p class="text-gray-500 leading-relaxed">Your digital companion to find open slots, reserve a battery, and manage your plan on the fly.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Membership Section -->
+    <section id="pricing" class="py-24 bg-[#0a0a0a]">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-20">
+                <h2 class="text-4xl font-bold text-white">Choose Your Journey</h2>
+                <div id="user-current-plan" class="mt-4 text-volt-green font-mono uppercase tracking-widest text-sm"></div>
+            </div>
+            
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="bg-volt-card p-8 rounded-3xl border border-white/5 hover-lift flex flex-col">
+                    <h3 class="text-xl font-bold mb-4 text-white">Weekend Warrior</h3>
+                    <div class="text-4xl font-black mb-6 text-white">₱850<span class="text-sm text-gray-600 font-normal">/mo</span></div>
+                    <ul class="space-y-4 mb-8 text-sm text-gray-400 flex-grow">
+                        <li><i class="fas fa-check text-volt-green mr-2"></i> 5 Quick Swaps</li>
+                        <li><i class="fas fa-check text-volt-green mr-2"></i> Standard Hub Access</li>
+                    </ul>
+                    <button onclick="handleSubscription('Casual Rider', 850)" class="w-full py-4 rounded-xl bg-white/5 text-white font-bold hover:bg-white/10 transition border border-white/10">Select Plan</button>
+                </div>
+                <div class="bg-emerald-950 p-8 rounded-3xl border-2 border-volt-green shadow-neon hover-lift flex flex-col relative overflow-hidden">
+                    <div class="absolute top-0 right-0 p-4 bg-volt-green text-black text-[10px] font-bold uppercase rotate-45 translate-x-8 -translate-y-2 w-32 text-center">BEST VALUE</div>
+                    <h3 class="text-xl font-bold mb-4 text-white">Daily Rider</h3>
+                    <div class="text-4xl font-black mb-6 text-white">₱2,200<span class="text-sm text-emerald-400 font-normal">/mo</span></div>
+                    <ul class="space-y-4 mb-8 text-sm text-emerald-200 flex-grow">
+                        <li><i class="fas fa-bolt text-volt-green mr-2"></i> <strong>Unlimited Swaps</strong></li>
+                        <li><i class="fas fa-check text-volt-green mr-2"></i> Priority Queueing</li>
+                    </ul>
+                    <button onclick="handleSubscription('Daily Commuter', 2200)" class="w-full py-4 rounded-xl bg-volt-green text-black font-bold hover:bg-emerald-400 transition">Select Plan</button>
+                </div>
+                <div class="bg-volt-card p-8 rounded-3xl border border-white/5 hover-lift flex flex-col">
+                    <h3 class="text-xl font-bold mb-4 text-white">Pro Dispatch</h3>
+                    <div class="text-4xl font-black mb-6 text-white">₱3,800<span class="text-sm text-gray-600 font-normal">/mo</span></div>
+                    <ul class="space-y-4 mb-8 text-sm text-gray-400 flex-grow">
+                        <li><i class="fas fa-check text-volt-green mr-2"></i> Unlimited Swaps</li>
+                        <li><i class="fas fa-check text-volt-green mr-2"></i> 24/7 Rapid Support</li>
+                    </ul>
+                    <button onclick="handleSubscription('Pro Delivery', 3800)" class="w-full py-4 rounded-xl bg-white/5 text-white font-bold hover:bg-white/10 transition border border-white/10">Select Plan</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Investors Section -->
+    <section id="invest" class="py-24 bg-black border-t border-white/5">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row items-center gap-20">
+                <div class="md:w-1/2">
+                    <h2 class="text-4xl font-bold mb-6 text-white">Invest in the <br><span class="text-volt-green">Green Revolution</span></h2>
+                    <p class="text-gray-400 mb-10 leading-relaxed">
+                        We're more than just batteries—we're building the foundation for a sustainable Philippines. Join our vision to expand across the nation and lead the future of urban energy.
+                    </p>
+                    <div class="grid grid-cols-2 gap-8">
+                        <div>
+                            <div class="text-3xl font-bold text-white">₱110M</div>
+                            <div class="text-xs uppercase text-volt-green font-bold tracking-widest mt-1">Projected Revenue</div>
+                        </div>
+                        <div>
+                            <div class="text-3xl font-bold text-white">3k+</div>
+                            <div class="text-xs uppercase text-volt-green font-bold tracking-widest mt-1">Community Members</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="md:w-1/2 bg-volt-card rounded-3xl p-10 border border-white/5 shadow-2xl">
+                    <h3 class="text-2xl font-bold mb-6 text-white">Investment Inquiry</h3>
+                    <form id="investForm" class="space-y-5">
+                        <input type="text" placeholder="Your Name" class="w-full px-5 py-4 bg-black rounded-xl border border-white/10 text-white outline-none focus:border-volt-green transition">
+                        <input type="email" placeholder="Email Address" class="w-full px-5 py-4 bg-black rounded-xl border border-white/10 text-white outline-none focus:border-volt-green transition">
+                        <button type="submit" class="w-full bg-volt-green text-black py-4 rounded-xl font-bold hover:brightness-110 transition shadow-neon">Request Investor Deck</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="py-12 border-t border-white/5 text-center text-gray-600 text-sm">
+        <p>&copy; 2026 RE-VOLT Energy Systems, Inc. Proudly based in Marikina City.</p>
+    </footer>
+
+    <!-- Modals & Toasts -->
+    <div id="checkoutModal" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-[100] p-4 backdrop-blur-md">
+        <div class="bg-volt-card rounded-3xl p-8 max-w-md w-full border border-white/10 shadow-2xl">
+            <h3 class="text-2xl font-bold mb-2 text-white">Ready to Ride?</h3>
+            <p class="text-volt-green font-mono text-sm mb-8" id="plan-name-display"></p>
+            <div class="space-y-4 mb-8">
+                <input type="text" id="user-name" placeholder="Full Name" class="w-full px-4 py-4 bg-black border border-white/10 rounded-xl text-white outline-none focus:border-volt-green">
+                <input type="email" id="user-email" placeholder="Email Address" class="w-full px-4 py-4 bg-black border border-white/10 rounded-xl text-white outline-none focus:border-volt-green">
+            </div>
+            <div class="flex space-x-4">
+                <button onclick="closeModal('checkoutModal')" class="flex-1 py-4 font-bold text-gray-500 hover:text-white">Cancel</button>
+                <button onclick="processCheckout()" class="flex-2 px-10 py-4 bg-volt-green text-black rounded-xl font-bold hover:brightness-110 shadow-neon">Confirm Membership</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="successModal" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-[100] p-4">
+        <div class="bg-volt-card rounded-3xl p-10 max-sm w-full text-center border border-volt-green/30">
+            <div class="w-20 h-20 bg-volt-green rounded-full flex items-center justify-center text-black mx-auto mb-6 text-4xl shadow-neon">
+                <i class="fas fa-check"></i>
+            </div>
+            <h3 class="text-2xl font-bold mb-2 text-white">We'll Be in Touch</h3>
+            <p class="text-gray-500 mb-8">Thanks for reaching out! One of our team members will send the data room details to your inbox shortly.</p>
+            <button onclick="closeModal('successModal')" class="w-full py-4 bg-white/5 text-white rounded-xl font-bold hover:bg-white/10 transition">Got it</button>
+        </div>
+    </div>
+
+    <div id="toast" class="fixed bottom-8 right-8 bg-volt-green text-black px-8 py-4 rounded-2xl shadow-neon translate-y-24 opacity-0 transition-all duration-500 z-[110] font-bold">
+        <div class="flex items-center space-x-3">
+            <i class="fas fa-bolt"></i>
+            <span id="toast-msg">Success!</span>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        let pendingPlan = null;
+
+        function initMap() {
+            // Center Marikina
+            map = L.map('map').setView([14.64, 121.095], 13);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+
+            updateMarkers(AppState.hubs);
+        }
+
+        function updateMarkers(hubArray) {
+            // Clear existing markers
+            markers.forEach(m => map.removeLayer(m));
+            markers = [];
+
+            hubArray.forEach(hub => {
+                const markerIcon = L.divIcon({
+                    className: 'custom-div-icon',
+                    html: `<div class="w-8 h-8 rounded-full border-2 border-black flex items-center justify-center shadow-lg ${hub.status === 'Online' ? 'bg-volt-green' : 'bg-red-500'}" style="box-shadow: 0 0 10px ${hub.status === 'Online' ? '#10b981' : '#ef4444'}"><i class="fas fa-bolt text-xs ${hub.status === 'Online' ? 'text-black' : 'text-white'}"></i></div>`,
+                    iconSize: [32, 32],
+                    iconAnchor: [16, 16]
+                });
+
+                const marker = L.marker([hub.lat, hub.lng], { icon: markerIcon }).addTo(map)
+                    .bindPopup(`<div class="p-2">
+                        <strong class="text-black">${hub.name}</strong><br>
+                        <span class="text-xs text-gray-600">${hub.address}</span><br>
+                        <span class="text-[10px] font-bold ${hub.status === 'Online' ? 'text-green-600' : 'text-red-600'}">${hub.status} • ${hub.slots} slots</span>
+                    </div>`);
+                markers.push(marker);
+            });
+        }
+
+        function filterHubs() {
+            const query = document.getElementById('hubSearch').value.toLowerCase();
+            const filtered = AppState.hubs.filter(hub => 
+                hub.name.toLowerCase().includes(query) || 
+                hub.address.toLowerCase().includes(query)
+            );
+            renderHubs(filtered);
+            if (filtered.length > 0) {
+                updateMarkers(filtered);
+            }
+        }
+
+        function focusHub(id) {
+            const hub = AppState.hubs.find(h => h.id === id);
+            if (hub) {
+                map.flyTo([hub.lat, hub.lng], 16);
+                const marker = markers.find(m => m.getLatLng().lat === hub.lat);
+                if (marker) marker.openPopup();
+                showToast(`Navigating to ${hub.name}...`);
+            }
+        }
+
+        function renderUI() {
+            const authArea = document.getElementById('nav-auth-area');
+            if (AppState.user) {
+                authArea.innerHTML = `
+                    <div class="flex items-center space-x-4">
+                        <div class="text-right hidden sm:block">
+                            <p class="text-xs font-bold text-white">${AppState.user.name}</p>
+                            <p class="text-[10px] text-volt-green font-mono">${AppState.user.plan}</p>
+                        </div>
+                        <button onclick="logout()" class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:text-red-500 transition border border-white/10">
+                            <i class="fas fa-sign-out-alt"></i>
+                        </button>
+                    </div>
+                `;
+            } else {
+                authArea.innerHTML = `<button onclick="scrollToId('pricing')" class="bg-volt-green text-black px-6 py-2 rounded-full font-bold text-sm shadow-neon hover:brightness-110 transition">JOIN THE GRID</button>`;
+            }
+
+            const planDisplay = document.getElementById('user-current-plan');
+            if (AppState.user && AppState.user.plan) {
+                planDisplay.innerHTML = `Currently active on the <span class="text-white">${AppState.user.plan}</span>`;
+            } else {
+                planDisplay.innerText = "You're currently not subscribed to a plan.";
+            }
+
+            renderHubs();
+        }
+
+        function renderHubs(data = AppState.hubs) {
+            const list = document.getElementById('hub-list');
+            list.innerHTML = data.map(hub => `
+                <div class="p-5 bg-volt-card rounded-2xl border border-white/5 shadow-sm hover:border-volt-green/30 transition-all cursor-pointer group" onclick="focusHub(${hub.id})">
+                    <div class="flex justify-between items-start mb-4">
+                        <span class="px-2 py-1 rounded-md text-[9px] font-bold uppercase ${hub.status === 'Online' ? 'bg-emerald-500/10 text-volt-green' : 'bg-orange-500/10 text-orange-400'} border ${hub.status === 'Online' ? 'border-emerald-500/20' : 'border-orange-500/20'}">${hub.status}</span>
+                        <i class="fas fa-location-arrow text-gray-700 group-hover:text-volt-green transition"></i>
+                    </div>
+                    <h4 class="font-bold text-white mb-1">${hub.name}</h4>
+                    <p class="text-[11px] text-gray-500 mb-4">${hub.address}</p>
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-gray-400"><i class="fas fa-battery-half mr-2 text-volt-green"></i>${hub.slots} Ready Swaps</span>
+                        <span class="text-volt-green font-bold">Directions <i class="fas fa-chevron-right ml-1"></i></span>
+                    </div>
+                </div>
+            `).join('');
+            
+            if (data.length === 0) {
+                list.innerHTML = `<div class="p-8 text-center text-gray-600 border border-dashed border-white/10 rounded-2xl">No stations found in this area.</div>`;
+            }
+        }
+
+        function refreshHubs() {
+            showToast("Syncing with Marikina Grid...");
+            AppState.hubs.forEach(h => {
+                h.slots = Math.floor(Math.random() * 24);
+                h.status = h.slots === 0 ? "Full" : "Online";
+            });
+            setTimeout(() => {
+                renderHubs();
+                updateMarkers(AppState.hubs);
+            }, 500);
+        }
+
+        function calculateImpact() {
+            const km = document.getElementById('kmRange').value;
+            document.getElementById('kmLabel').innerText = `${km}km / day`;
+            const weekly = (km * 7 * 0.12).toFixed(1);
+            const trees = Math.ceil(weekly / 2);
+            document.getElementById('co2Val').innerText = `${weekly}kg`;
+            document.getElementById('treeVal').innerText = trees;
+        }
+
+        function handleSubscription(plan, price) {
+            pendingPlan = { name: plan, price: price };
+            document.getElementById('plan-name-display').innerText = `${plan} • ₱${price} / month`;
+            openModal('checkoutModal');
+        }
+
+        function processCheckout() {
+            const name = document.getElementById('user-name').value;
+            const email = document.getElementById('user-email').value;
+            if (!name || !email) return showToast("Please fill in your details.");
+
+            AppState.user = { name, email, plan: pendingPlan.name };
+            AppState.save();
+            closeModal('checkoutModal');
+            showToast(`Glad to have you with us, ${name}!`);
+        }
+
+        function logout() {
+            AppState.user = null;
+            AppState.save();
+            showToast("You've been signed out.");
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').innerText = msg;
+            toast.classList.remove('translate-y-24', 'opacity-0');
+            setTimeout(() => toast.classList.add('translate-y-24', 'opacity-0'), 3000);
+        }
+
+        function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+        function scrollToId(id) { document.getElementById(id).scrollIntoView({behavior: 'smooth'}); }
+
+        window.onload = () => {
+            renderUI();
+            calculateImpact();
+            initMap();
+            
+            const investForm = document.getElementById('investForm');
+            if (investForm) {
+                investForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    showToast("Sending request...");
+                    openModal('successModal');
+                });
+            }
+        };
+    </script>
+</body>
+</html>
